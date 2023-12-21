@@ -3,8 +3,16 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from time import sleep
+import csv
 
-
+def save_csv(csv_path, path,title, desc):
+   with open(csv_path, mode='w', newline='') as file:
+      writer = csv.writer(file)
+      writer.writerow(["Title", "Path", "Description"])
+      for i in range(len(title)):
+         row = [title[i], path[i], desc[i]]
+         writer.writerow(row)
+    
 def read_urls(filename):
     lines = []
     try:
@@ -25,13 +33,13 @@ def openPages(urlLst):
       sleep(1)
    driver.switch_to.window(driver.window_handles[0])
 
-def downOrigImg(imgPaths):
+def downOrigImg(imgPaths, folPath):
    closed = 0
    paths = []
    for i in range(len(imgPaths)):
       driver.switch_to.window(driver.window_handles[i + 1 - closed])
       l = driver.find_element(By.CSS_SELECTOR, 'body > img')
-      path = str(i) + 'img.png'
+      path = folPath + "/" + str(i) + 'img.png'
       with open(path, 'wb') as file:
          file.write(driver.find_element(By.CSS_SELECTOR, 'body > img').screenshot_as_png)
       paths.append(path)
@@ -44,30 +52,20 @@ def getInfo(urlLst):
    closed = 0
    imgUrls =[]
    titles = []
+   descs = []
    for i in range(len(urlLst)):
       driver.switch_to.window(driver.window_handles[i + 1 - closed])
       title = driver.find_element(By.CSS_SELECTOR, '#content > div.m-design > div:nth-child(1) > div > div.m-design__product > div.m-design__title > h1').text
       titles.append(title)
+      desc = driver.find_element(By.CSS_SELECTOR, '#content > div.m-design > div:nth-child(1) > div > div.m-design__product > div.m-design__title > div > h2').text
+      descs.append(desc)
       l = driver.find_element(By.CSS_SELECTOR, '#content > div.m-design > div:nth-child(1) > div > div.m-design__product > div.m-design__preview > div > div.m-product-preview__main.jsProductMainImages > div.glide.m-product-preview__glider.jsProductImgGlide.glide--slider.glide--horizontal > div.glide__track.m-product-preview__glider-track > ul > li.glide__slide.m-product-preview__glider-slide.active > picture > img')
       print(l.get_attribute("src"))
       imgUrls.append(l.get_attribute("src"))
       driver.execute_script("window.close('');")
       closed += 1
       sleep(3)
-   return imgUrls, titles
-
-def runAll(url):
-   print("testing started")
-   openPages(url)
-   imgu_urls, titls = getInfo(url)
-   print("before opening images")
-   print(imgu_urls)
-   print("----------------")
-   #openOriginImgs(imgu_urls)
-   openPages(imgu_urls)
-   print("after opening images")
-   imgPaths = downOrigImg(imgu_urls)
-   print(imgPaths)
+   return imgUrls, titles, descs
    
 def openOriginImgs(imgs):
    for i in range(len(imgs)):
@@ -79,13 +77,26 @@ def openOriginImgs(imgs):
       
 
 if __name__ == "__main__":
-   if len(sys.argv) != 2:
-      print("Usage: python script.py <filename>")
+   if len(sys.argv) != 4:
+      print("Usage: python script.py <imgFolder> <filename> <csv_path>")
       sys.exit(1)
    upDir = "img"
    options = Options()
    options.add_experimental_option("excludeSwitches", ["enable-logging"])
    driver = webdriver.Chrome(options=options)
-   allUrls = read_urls(sys.argv[1])
-   runAll(allUrls)
+   print("testing started")
+   
+   allUrls = read_urls(sys.argv[2])
+   openPages(allUrls)
+   allUrls, allTitles, allDescs = getInfo(allUrls)
+   print("before opening images")
+   print(allUrls)
+   print("----------------")
+   #openOriginImgs(allUrls)
+   openPages(allUrls)
+   print("after opening images")
+   imgPaths = downOrigImg(allUrls, sys.argv[1])
+   print(imgPaths)
+   print(allTitles)
+   save_csv(sys.argv[3], imgPaths, allTitles, allDescs)
    

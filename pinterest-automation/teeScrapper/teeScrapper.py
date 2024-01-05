@@ -4,33 +4,25 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from time import sleep
 import csv
+import os
+from utils import read_urls
 
-def save_csv(csv_path, path,title, desc):
+def save_csv(csv_path, path,title, desc, urls):
    with open(csv_path, mode='w', newline='') as file:
       writer = csv.writer(file)
-      writer.writerow(["Title", "Path", "Description"])
+      writer.writerow(["Title", "Path", "Description", "url"])
       for i in range(len(title)):
-         row = [title[i], path[i], desc[i]]
+         row = [title[i], os.path.abspath(path[i]), desc[i], urls[i]]
          writer.writerow(row)
     
-def read_urls(filename):
-    lines = []
-    try:
-        with open(filename, 'r') as file:
-            lines = file.readlines()
-    except FileNotFoundError:
-        print(f"Error: File '{filename}' not found.")
-    except Exception as e:
-        print(f"An error occurred: {e}")
-    return lines
-
 def openPages(urlLst):
    driver.switch_to.window(driver.window_handles[0])
    for i in range(len(urlLst)):
       driver.execute_script("window.open('');")
       driver.switch_to.window(driver.window_handles[i + 1])
       driver.get(urlLst[i])
-      sleep(1)
+      print(urlLst[i])
+      sleep(2)
    driver.switch_to.window(driver.window_handles[0])
 
 def downOrigImg(imgPaths, folPath):
@@ -78,7 +70,7 @@ def openOriginImgs(imgs):
 
 if __name__ == "__main__":
    if len(sys.argv) != 4:
-      print("Usage: python script.py <imgFolder> <filename> <csv_path>")
+      print("Usage: python script.py <imgFolder> <urls> <csv_path>")
       sys.exit(1)
    upDir = "img"
    options = Options()
@@ -87,7 +79,9 @@ if __name__ == "__main__":
    print("testing started")
    
    allUrls = read_urls(sys.argv[2])
+   print("opened all urls")
    openPages(allUrls)
+   print("got all urls")
    allUrls, allTitles, allDescs = getInfo(allUrls)
    print("before opening images")
    print(allUrls)
@@ -98,5 +92,6 @@ if __name__ == "__main__":
    imgPaths = downOrigImg(allUrls, sys.argv[1])
    print(imgPaths)
    print(allTitles)
-   save_csv(sys.argv[3], imgPaths, allTitles, allDescs)
+   allUrls = read_urls(sys.argv[2])
+   save_csv(sys.argv[3], imgPaths, allTitles, allDescs, allUrls)
    
